@@ -255,11 +255,11 @@ func (s *DNS) lookupIPInternal(domain string, option dns.IPOption) ([]net.IP, er
 			}
 
 			if resultChan == nil {
-				log.Printf("create new channel for %s", client.Name())
+				log.Printf("create new channel for %s@%v", client.Name(), client.clientIP)
 				resultChan = make(chan QueryResult, 1)
 				queryResultChannels = append(queryResultChannels, resultChan)
 			} else {
-				log.Printf("reuse channel for %s", client.Name())
+				log.Printf("reuse channel for %s@%v", client.Name(), client.clientIP)
 			}
 
 			// concurrency query
@@ -278,10 +278,17 @@ func (s *DNS) lookupIPInternal(domain string, option dns.IPOption) ([]net.IP, er
 				}()
 
 				// send query result to channel
-				resultChan <- QueryResult{
+				select {
+				case resultChan <- QueryResult{
 					server: client.Name(),
 					ip:     ips,
 					err:    err,
+				}:
+					log.Printf("%s@%v: query result sent", client.Name(), client.clientIP)
+					break
+				default:
+					log.Printf("%s@%v: query result discard", client.Name(), client.clientIP)
+					break
 				}
 			}(resultChan, client, ctx, option, s)
 
