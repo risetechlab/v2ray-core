@@ -25,11 +25,12 @@ type Server interface {
 
 // Client is the interface for DNS client.
 type Client struct {
-	server       Server
-	clientIP     net.IP
-	skipFallback bool
-	domains      []string
-	expectIPs    []*router.GeoIPMatcher
+	server             Server
+	concurrentWithNext bool
+	clientIP           net.IP
+	skipFallback       bool
+	domains            []string
+	expectIPs          []*router.GeoIPMatcher
 }
 
 var errExpectedIPNonMatch = errors.New("expectIPs not match")
@@ -147,6 +148,7 @@ func NewClient(ctx context.Context, ns *NameServer, clientIP net.IP, container r
 		}
 
 		client.server = server
+		client.concurrentWithNext = ns.ConcurrentWithNext
 		client.clientIP = clientIP
 		client.skipFallback = ns.SkipFallback
 		client.domains = rules

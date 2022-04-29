@@ -18,12 +18,13 @@ import (
 )
 
 type NameServerConfig struct {
-	Address      *cfgcommon.Address
-	ClientIP     *cfgcommon.Address
-	Port         uint16
-	SkipFallback bool
-	Domains      []string
-	ExpectIPs    cfgcommon.StringList
+	Address            *cfgcommon.Address
+	ClientIP           *cfgcommon.Address
+	Port               uint16
+	ConcurrentWithNext bool
+	SkipFallback       bool
+	Domains            []string
+	ExpectIPs          cfgcommon.StringList
 
 	cfgctx context.Context
 }
@@ -36,17 +37,19 @@ func (c *NameServerConfig) UnmarshalJSON(data []byte) error {
 	}
 
 	var advanced struct {
-		Address      *cfgcommon.Address   `json:"address"`
-		ClientIP     *cfgcommon.Address   `json:"clientIp"`
-		Port         uint16               `json:"port"`
-		SkipFallback bool                 `json:"skipFallback"`
-		Domains      []string             `json:"domains"`
-		ExpectIPs    cfgcommon.StringList `json:"expectIps"`
+		Address            *cfgcommon.Address   `json:"address"`
+		ClientIP           *cfgcommon.Address   `json:"clientIp"`
+		Port               uint16               `json:"port"`
+		ConcurrentWithNext bool                 `json:"concurrentWithNext"`
+		SkipFallback       bool                 `json:"skipFallback"`
+		Domains            []string             `json:"domains"`
+		ExpectIPs          cfgcommon.StringList `json:"expectIps"`
 	}
 	if err := json.Unmarshal(data, &advanced); err == nil {
 		c.Address = advanced.Address
 		c.ClientIP = advanced.ClientIP
 		c.Port = advanced.Port
+		c.ConcurrentWithNext = advanced.ConcurrentWithNext
 		c.SkipFallback = advanced.SkipFallback
 		c.Domains = advanced.Domains
 		c.ExpectIPs = advanced.ExpectIPs
@@ -123,11 +126,12 @@ func (c *NameServerConfig) Build() (*dns.NameServer, error) {
 			Address: c.Address.Build(),
 			Port:    uint32(c.Port),
 		},
-		ClientIp:          myClientIP,
-		SkipFallback:      c.SkipFallback,
-		PrioritizedDomain: domains,
-		Geoip:             geoipList,
-		OriginalRules:     originalRules,
+		ConcurrentWithNext: c.ConcurrentWithNext,
+		ClientIp:           myClientIP,
+		SkipFallback:       c.SkipFallback,
+		PrioritizedDomain:  domains,
+		Geoip:              geoipList,
+		OriginalRules:      originalRules,
 	}, nil
 }
 

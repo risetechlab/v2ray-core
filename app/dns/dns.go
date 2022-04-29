@@ -9,6 +9,7 @@ package dns
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 
@@ -246,14 +247,20 @@ func (s *DNS) lookupIPInternal(domain string, option dns.IPOption) ([]net.IP, er
 	}
 
 	if s.enableConcurrency {
+		var resultChan chan QueryResult
 		var queryResultChannels []chan QueryResult // channels for receiving dns querying result
 		for _, client := range s.sortClients(domain) {
 			if skipQuery(client) {
 				continue
 			}
 
-			resultChan := make(chan QueryResult)
-			queryResultChannels = append(queryResultChannels, resultChan)
+			if resultChan == nil {
+				log.Printf("create new channel for %s", client.Name())
+				resultChan = make(chan QueryResult, 1)
+				queryResultChannels = append(queryResultChannels, resultChan)
+			} else {
+				log.Printf("reuse channel for %s", client.Name())
+			}
 
 			// concurrency query
 			go func(resultChan chan QueryResult, client *Client, ctx context.Context, option dns.IPOption, s *DNS) {
@@ -277,6 +284,13 @@ func (s *DNS) lookupIPInternal(domain string, option dns.IPOption) ([]net.IP, er
 					err:    err,
 				}
 			}(resultChan, client, ctx, option, s)
+
+			if client.concurrentWithNext == false {
+				log.Printf("do not reuse channel for next server")
+				resultChan = nil
+			} else {
+				log.Printf("reuse channel for next channel")
+			}
 		}
 
 		// get the first available result from query result channel
