@@ -209,7 +209,7 @@ type QueryResult struct {
 }
 
 func isTolerableLookupError(err error) bool {
-	return err == context.Canceled || err == context.DeadlineExceeded || err == errExpectedIPNonMatch
+	return err == context.Canceled || err == context.DeadlineExceeded || err == errExpectedIPNonMatch || strings.Contains(err.Error(), "rcode:")
 }
 
 func (s *DNS) lookupIPInternal(domain string, option dns.IPOption) ([]net.IP, error) {
